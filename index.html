@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>莲花 · AI 时代营销博弈界面 — ICC 红跑跑</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@700;900&family=Noto+Sans+SC:wght@400;500;700&family=Inter:wght@400;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FFFFFF; --paper-deep:#F5F5F5;
+    --ink:#0D0D0D; --ink-soft:#262626; --ink-mute:#5C5C5C; --ink-faint:#8A8A8A;
+    --line:#E2E2E2;
+    --yellow:#FFE300;          /* 莲花官方黄 PANTONE 803C · 用于黑底/高亮 */
+    --yellow-mark:rgba(255,227,0,0.55);  /* 白底高亮 marker */
+    --yellow-soft:rgba(255,227,0,0.12);  /* 极浅黄底 */
+    --sans-cn:"Noto Sans SC","PingFang SC",sans-serif;
+    --serif-cn:"Noto Serif SC","Songti SC",serif;
+    --sans-en:"Inter",-apple-system,sans-serif;
+    --display-en:"Archivo Black","Inter",sans-serif;
+    --gap-l:22px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:var(--sans-cn);
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+  .deck{position:relative; height:100vh; width:100vw; overflow:hidden; z-index:2;}
+  .slide{
+    position:absolute; top:0; left:0; width:100vw; height:100vh;
+    padding:3.4vh 5.5vw 5vh;
+    display:grid; grid-template-rows:auto 1fr auto; row-gap:1.6vh;
+    overflow:hidden;
+    opacity:0; visibility:hidden; transition:opacity .3s ease;
+  }
+  .slide.active{opacity:1; visibility:visible;}
+  /* top / bottom bars */
+  .top-nav{position:absolute; top:2.4vh; left:0; right:0; padding:0 5.5vw;
+    display:flex; justify-content:space-between; align-items:center; z-index:5;}
+  .brand{font-family:var(--display-en); font-size:13px; letter-spacing:0.2em; color:var(--ink);}
+  .topic-pill{background:var(--ink); color:var(--yellow); padding:6px 15px; border-radius:100px;
+    font-size:11px; letter-spacing:0.1em; font-family:var(--sans-cn);}
+  .bottom-bar{position:absolute; bottom:2vh; left:0; right:0; padding:0 5.5vw;
+    display:flex; justify-content:space-between; align-items:center; z-index:5;
+    font-family:var(--sans-en); font-size:11px; color:var(--ink-mute); letter-spacing:0.14em; text-transform:uppercase;}
+  .chapter-label{font-family:var(--sans-cn); text-transform:none; letter-spacing:0.04em; font-size:11px; color:var(--ink-soft);}
+  .chapter-label::before{content:''; display:inline-block; width:8px; height:8px; background:var(--yellow); margin-right:8px; vertical-align:middle;}
+  .progress-counter strong{color:var(--ink); font-size:12px;}
+
+  .slide-head{padding-top:4.2vh;}
+  .eyebrow{font-family:var(--sans-en); font-size:11.5px; font-weight:600; letter-spacing:0.3em; text-transform:uppercase;
+    color:var(--ink-mute); margin-bottom:8px; display:flex; align-items:center; gap:12px;}
+  .eyebrow::after{content:''; flex:1; height:3px; background:var(--yellow); max-width:90px;}
+  .h-display{font-family:var(--serif-cn); font-weight:900; font-size:clamp(26px,3vw,42px); line-height:1.12; letter-spacing:-0.01em;}
+  .accent{background:linear-gradient(transparent 58%, var(--yellow-mark) 58%); padding:0 2px;}
+  .hl{background:linear-gradient(transparent 60%, var(--yellow-mark) 60%);}
+
+  /* 博弈界面 board */
+  .board{display:flex; flex-direction:column; gap:1vh; flex:1; justify-content:center;}
+  .part-tag{font-family:var(--sans-en); font-size:11px; font-weight:700; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--ink); display:flex; align-items:center; gap:9px;}
+  .part-tag span.cn{font-family:var(--sans-cn); color:var(--ink-soft); letter-spacing:0.02em; font-weight:500;}
+  .part-tag .ar{display:inline-block; width:9px; height:9px; background:var(--yellow);}
+
+  .cells{display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--gap-l);}
+  .cell{border:1.5px solid var(--ink); background:var(--paper); padding:12px 15px 11px; position:relative;}
+  .cell .c-letter{font-family:var(--display-en); font-size:10.5px; letter-spacing:0.18em; color:var(--ink-mute); margin-bottom:4px;}
+  .cell .c-name{font-family:var(--serif-cn); font-weight:700; font-size:clamp(15px,1.3vw,18px); margin-bottom:2px; color:var(--ink);}
+  .cell .c-verb{font-family:var(--sans-en); font-size:10px; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:7px;}
+  .cell .c-desc{font-size:12.5px; line-height:1.55; color:var(--ink-soft);}
+  .cell .c-lotus{font-size:11.5px; line-height:1.45; color:var(--ink-mute); margin-top:6px; padding-top:6px; border-top:1px dashed var(--line);}
+  .cell .ai-tag{position:absolute; top:12px; right:12px; background:var(--ink); color:var(--yellow);
+    font-family:var(--sans-en); font-size:9.5px; font-weight:700; letter-spacing:0.12em; padding:2px 7px; border-radius:3px;}
+  .cell.cap{background:var(--yellow-soft); border-color:var(--ink);}
+
+  /* 中央 battle 条 */
+  .battle{background:var(--ink); color:var(--paper); text-align:center; padding:9px 3vw; border:1.5px solid var(--ink);
+    display:flex; flex-direction:column; align-items:center; gap:2px;}
+  .battle .b-label{font-family:var(--sans-en); font-size:11px; font-weight:700; letter-spacing:0.26em; color:var(--yellow); text-transform:uppercase;}
+  .battle .b-title{font-family:var(--serif-cn); font-weight:900; font-size:clamp(17px,1.9vw,23px);}
+  .battle .b-sub{font-size:12.5px; color:rgba(255,255,255,0.82); line-height:1.5; max-width:780px;}
+  .battle .b-sub b{color:var(--yellow); font-weight:700;}
+
+  .foot-bar{border-top:1.5px solid var(--ink); padding-top:1.2vh; display:flex; justify-content:space-between; align-items:flex-end; gap:30px;}
+  .foot-quote{font-family:var(--serif-cn); font-weight:900; font-size:clamp(15px,1.6vw,21px); line-height:1.38; color:var(--ink); max-width:58%;}
+  .foot-quote b{background:linear-gradient(transparent 58%, var(--yellow-mark) 58%);}
+  .foot-side{font-size:12px; color:var(--ink-mute); line-height:1.55; max-width:40%; text-align:right;}
+  .foot-side b{color:var(--ink); font-weight:700;}
+
+  /* slide 2 closing */
+  .close-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--gap-l); flex:1; align-content:center;}
+  .ccard{border:1.5px solid var(--ink); background:var(--paper); padding:22px 22px; display:flex; flex-direction:column;}
+  .ccard .cc-from{font-family:var(--sans-en); font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-mute); margin-bottom:10px;}
+  .ccard .cc-h{font-family:var(--serif-cn); font-weight:900; font-size:clamp(19px,2vw,25px); margin-bottom:10px; color:var(--ink);}
+  .ccard .cc-h b{background:linear-gradient(transparent 58%, var(--yellow-mark) 58%);}
+  .ccard .cc-d{font-size:13.5px; line-height:1.68; color:var(--ink-soft);}
+  .ccard.dark{background:var(--ink); border-color:var(--ink);}
+  .ccard.dark .cc-from{color:var(--yellow);}
+  .ccard.dark .cc-h{color:var(--paper);}
+  .ccard.dark .cc-h b{color:var(--yellow); background:none;}
+  .ccard.dark .cc-d{color:rgba(255,255,255,0.86);}
+
+  /* 生态位地图 */
+  .niche-map{display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; flex:1; align-content:center;}
+  .mcell{border:1.5px solid var(--ink); background:var(--paper); padding:12px 15px; display:flex; flex-direction:column;}
+  .mcell .nb-tag{font-family:var(--sans-en); font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:5px;}
+  .mcell .nb-name{font-family:var(--serif-cn); font-weight:700; font-size:clamp(15px,1.3vw,18px); margin-bottom:4px; color:var(--ink);}
+  .mcell .nb-limit{font-size:12px; line-height:1.5; color:var(--ink-soft); flex:1;}
+  .mcell .vs{margin-top:8px; padding-top:7px; border-top:1px dashed var(--line); font-size:12px; font-weight:700; color:var(--ink);}
+  .mcell .vs em{font-style:normal; background:linear-gradient(transparent 56%, var(--yellow-mark) 56%); padding:0 2px;}
+  .m-top{grid-column:2; grid-row:1;}
+  .m-l{grid-column:1; grid-row:2;}
+  .m-r{grid-column:3; grid-row:2;}
+  .koe-node{grid-column:2; grid-row:2; background:var(--ink); border:1.5px solid var(--ink); color:#fff;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:14px;}
+  .koe-node .kn-star{color:var(--yellow); font-size:10.5px; letter-spacing:0.2em; font-family:var(--sans-en); font-weight:700; margin-bottom:5px;}
+  .koe-node .kn-name{font-family:var(--serif-cn); font-weight:900; font-size:clamp(20px,2.2vw,28px); color:#fff;}
+  .koe-node .kn-ess{font-size:12px; color:var(--yellow); margin-top:6px; letter-spacing:0.03em; line-height:1.5;}
+  .synth-bar{margin-top:2.4vh; background:var(--ink); color:#fff; text-align:center; padding:22px 3vw;}
+  .synth-bar .sb-label{font-family:var(--sans-en); font-size:12px; letter-spacing:0.22em; color:var(--yellow); text-transform:uppercase; margin-bottom:9px;}
+  .synth-bar .sb-text{font-family:var(--serif-cn); font-weight:900; font-size:clamp(23px,2.7vw,35px); line-height:1.35;}
+  .synth-bar .sb-text em{font-style:normal; color:var(--yellow);}
+  .chart-wrap{flex:0 1 auto; display:flex; align-items:center; justify-content:center; min-height:0;}
+  .chart-wrap svg{width:100%; height:auto; max-height:39vh;}
+  .niche-foot{border-top:1.5px solid var(--ink); padding-top:1.1vh; display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px; font-size:12.5px; color:var(--ink-soft); line-height:1.5;}
+  .niche-foot .nf-x{font-family:var(--sans-en); font-size:10px; letter-spacing:0.1em; color:var(--ink-faint); display:block; margin-bottom:2px;}
+  .niche-foot b{color:var(--ink);}
+  .niche-foot em{font-style:normal; background:linear-gradient(transparent 58%, var(--yellow-mark) 58%); padding:0 2px;}
+
+  /* 双半球 */
+  .hemis{display:grid; grid-template-columns:1fr 98px 1fr; flex:1; align-content:center; gap:0;}
+  .hemi{border:1.5px solid var(--ink); padding:18px 22px; display:flex; flex-direction:column;}
+  .hemi.meaning{background:var(--yellow-soft);}
+  .hemi.eff{background:var(--paper);}
+  .hemis .hemi:first-of-type{border-right:none;}
+  .hemis .hemi:last-of-type{border-left:none;}
+  .gold-trigger{margin-top:11px; align-self:flex-start; background:var(--ink); color:var(--yellow); border:none;
+    font-family:var(--sans-cn); font-size:12.5px; font-weight:700; padding:7px 15px; border-radius:100px; cursor:pointer; letter-spacing:0.02em;}
+  .gold-trigger:hover{background:#000;}
+  /* 二级页面 · 金矿 */
+  .modal{position:fixed; inset:0; z-index:200; background:rgba(10,10,10,0.62); display:none; align-items:center; justify-content:center; padding:5vh 5vw;}
+  .modal.show{display:flex;}
+  .modal-card{background:var(--paper); border:1.5px solid var(--ink); max-width:780px; width:100%; padding:34px 40px; position:relative; max-height:88vh; overflow-y:auto;}
+  .modal-x{position:absolute; top:14px; right:18px; background:none; border:none; font-size:20px; cursor:pointer; color:var(--ink-mute); line-height:1;}
+  .modal-card .m-eyebrow{font-family:var(--sans-en); font-size:11px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:var(--gold,#9A7B00); color:#9A7B00;}
+  .modal-card h2{font-family:var(--serif-cn); font-weight:900; font-size:clamp(23px,2.5vw,33px); line-height:1.22; margin:9px 0 16px; color:var(--ink);}
+  .modal-card h2 .accent{background:linear-gradient(transparent 58%, var(--yellow-mark) 58%); padding:0 2px;}
+  .modal-card p{font-size:14.5px; line-height:1.7; color:var(--ink-soft); margin-bottom:14px;}
+  .gold-stats{display:grid; grid-template-columns:1fr 1fr 1fr; gap:13px; margin:18px 0;}
+  .gold-stats div{background:var(--yellow-soft); border:1px solid var(--line); padding:13px 14px; font-size:12.5px; color:var(--ink-soft); line-height:1.5;}
+  .gold-stats strong{display:block; font-family:var(--serif-cn); font-size:15.5px; color:var(--ink); margin-bottom:4px;}
+  .gold-close-line{font-family:var(--serif-cn); font-weight:700; font-size:16.5px !important; color:var(--ink) !important; margin-top:4px;}
+  .gold-close-line em{font-style:normal; background:linear-gradient(transparent 56%, var(--yellow-mark) 56%);}
+  .gold-link{display:inline-block; margin-top:10px; background:var(--ink); color:var(--yellow); font-weight:700; font-size:14px; padding:12px 24px; text-decoration:none; letter-spacing:0.03em;}
+  .gold-link:hover{background:#000;}
+  .hemi .he-tag{font-family:var(--sans-en); font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:6px;}
+  .hemi .he-h{font-family:var(--serif-cn); font-weight:900; font-size:clamp(21px,2.3vw,30px); margin-bottom:3px; color:var(--ink);}
+  .hemi .he-sub{font-size:12.5px; color:var(--ink-mute); margin-bottom:11px;}
+  .hemi .he-d{font-size:13px; line-height:1.62; color:var(--ink-soft); flex:1;}
+  .hemi .he-flag{margin-top:11px; font-weight:700; font-size:13px; color:var(--ink);}
+  .ai-seam{background:var(--ink); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:5px;}
+  .ai-seam .as-big{font-family:var(--display-en); font-size:22px; color:var(--yellow); line-height:1;}
+  .ai-seam .as-t{font-size:11px; color:#fff; line-height:1.35; letter-spacing:0.03em;}
+
+  /* 翻页导航 */
+  .nav{position:fixed; bottom:1.4vh; left:50%; transform:translateX(-50%); z-index:60; display:flex; align-items:center; gap:10px; background:var(--ink); border-radius:100px; padding:5px 9px;}
+  .nav button{background:none; border:none; color:var(--yellow); font-size:20px; cursor:pointer; line-height:1; padding:2px 12px; font-family:var(--sans-en);}
+  .nav button:disabled{color:#5a5a5a; cursor:default;}
+  .nav #pageind{color:#fff; font-family:var(--sans-en); font-size:11.5px; letter-spacing:0.12em; min-width:48px; text-align:center;}
+
+  /* 能力图（SLIDE 4） */
+  .cap-map{display:flex; flex-direction:column; gap:1.4vh; flex:1; justify-content:center;}
+  .cap-row{display:grid; grid-template-columns:1fr 28px 1.65fr 28px 1fr; align-items:stretch;}
+  .cblock{border:1.5px solid var(--ink); background:var(--paper); padding:13px 16px; display:flex; flex-direction:column;}
+  .cblock.c-mean{background:var(--yellow-soft);}
+  .cb-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .cb-no{font-family:var(--sans-en); font-size:10.5px; letter-spacing:0.14em; color:var(--ink-mute);}
+  .cb-hemi{font-family:var(--sans-cn); font-size:10.5px; font-weight:700; padding:2px 10px; border-radius:100px; letter-spacing:0.04em;}
+  .cb-hemi.mean{background:var(--yellow); color:#0D0D0D;}
+  .cb-hemi.eff{background:var(--ink); color:var(--yellow);}
+  .cb-h{font-family:var(--serif-cn); font-weight:900; font-size:clamp(18px,2vw,24px); color:var(--ink); margin-bottom:5px;}
+  .cb-d{font-size:12.5px; line-height:1.55; color:var(--ink-soft);}
+  .cflow{display:flex; align-items:center; justify-content:center; font-size:20px; color:var(--ink); font-weight:700;}
+  .human-port{background:var(--yellow); color:#0D0D0D; font-size:12px; font-weight:700; padding:6px 11px; margin-bottom:8px; line-height:1.45;}
+  .human-port span{font-weight:400; font-size:11px;}
+  .pipe{display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-bottom:8px;}
+  .pipe .pp{background:#fff; border:1px solid var(--ink); font-size:11.5px; padding:4px 8px; font-weight:500;}
+  .pipe i{font-style:normal; color:var(--ink-faint); font-size:13px;}
+  .found{font-size:11.5px; color:var(--ink-mute); line-height:1.5; border-top:1px dashed var(--line); padding-top:7px; margin-top:auto;}
+  .found b{color:var(--ink);}
+  .loop-note{text-align:center; font-size:12.5px; color:var(--ink-soft); background:var(--yellow-soft); border:1px solid var(--line); padding:8px 14px;}
+  .loop-note b{color:var(--ink);}
+  /* 数据飞轮管道 */
+  .loop-blocks{display:grid; grid-template-columns:1fr 44px 1.55fr; align-items:stretch; position:relative; z-index:2;}
+  .flywheel{position:relative; height:64px; margin-top:4px;}
+  .fw-line{position:absolute; left:23%; right:28%; top:28px; height:4px; background:var(--ink);}
+  .fw-riser{position:absolute; top:0; height:30px; width:4px; background:var(--ink);}
+  .fw-riser.l{left:23%;}
+  .fw-riser.r{right:28%;}
+  .fw-head{position:absolute; left:calc(23% - 5px); top:-8px; width:0; height:0; border-left:7px solid transparent; border-right:7px solid transparent; border-bottom:9px solid var(--ink);}
+  .fw-chip{position:absolute; left:46.5%; top:28px; transform:translate(-50%,-50%); background:var(--yellow); color:#0D0D0D; padding:5px 16px; font-weight:700; font-size:12.5px; white-space:nowrap; z-index:3; border:1.5px solid var(--ink);}
+
+  /* SLIDE 5 · 工作流升级 */
+  .wf-row{display:grid; grid-template-columns:repeat(6,1fr); gap:8px;}
+  .wf-col{border:1.5px solid var(--ink); display:flex; flex-direction:column; overflow:hidden;}
+  .wf-stage{background:var(--ink); color:var(--yellow); font-weight:700; font-size:12px; padding:5px 6px; text-align:center;}
+  .wf-today,.wf-ai{padding:8px 9px; font-size:11px; line-height:1.42; flex:1;}
+  .wf-today{color:var(--ink-mute); border-bottom:1px dashed var(--line);}
+  .wf-ai{color:var(--ink-soft); background:var(--yellow-soft);}
+  .wf-today .lab,.wf-ai .lab{display:block; font-family:var(--sans-en); font-size:9px; letter-spacing:0.1em; font-weight:700; margin-bottom:3px;}
+  .wf-today .lab{color:var(--ink-faint);} .wf-ai .lab{color:#9A7B00;}
+  .wf-bottom{display:grid; grid-template-columns:1fr 1.45fr; gap:16px; margin-top:1.4vh;}
+  .demo-box{border:1.5px solid var(--ink); padding:12px 15px;}
+  .demo-box .db-tag{display:inline-block; background:var(--yellow); color:#0D0D0D; font-family:var(--sans-en); font-size:10px; font-weight:700; letter-spacing:0.12em; padding:2px 8px; margin-bottom:6px;}
+  .demo-box .db-t{font-family:var(--serif-cn); font-weight:900; font-size:15px; color:var(--ink); margin-bottom:8px;}
+  .demo-ba{display:grid; grid-template-columns:1fr 1.2fr; gap:10px; align-items:stretch;}
+  .demo-ba .cell-x{font-size:11px; line-height:1.5; padding:9px 11px; border:1px solid var(--line); background:var(--paper); color:var(--ink-mute);}
+  .demo-ba .cell-x .lab{display:block; font-family:var(--sans-en); font-size:9px; font-weight:700; letter-spacing:0.1em; margin-bottom:4px; color:var(--ink-faint);}
+  .demo-ba .after{background:var(--yellow-soft); border:1.5px solid var(--ink); font-size:12.5px; line-height:1.55; color:var(--ink-soft);}
+  .demo-ba .after .lab{color:#9A7B00; font-size:10px;}
+  .arch{border:1.5px solid var(--ink); padding:11px 14px; display:flex; flex-direction:column;}
+  .arch-t{font-family:var(--serif-cn); font-weight:900; font-size:13px; color:var(--ink); margin-bottom:8px; line-height:1.4;}
+  .arch-why{display:inline-block; background:var(--yellow); color:#0D0D0D; font-family:var(--sans-cn); font-size:10px; font-weight:700; padding:1px 8px; border-radius:100px; margin-right:6px; vertical-align:1px;}
+  .arch-layers{display:flex; flex-direction:column; gap:5px;}
+  .al{border:1px solid var(--line); background:var(--yellow-soft); padding:5px 9px; font-size:11px; line-height:1.35; color:var(--ink-soft);}
+  .al-k{display:inline-block; background:var(--ink); color:var(--yellow); font-weight:700; font-size:10px; padding:1px 7px; margin-right:7px; border-radius:2px;}
+  .arch-down{text-align:center; font-size:10.5px; color:var(--ink-mute); margin:5px 0; font-weight:700; letter-spacing:0.04em;}
+  .arch-out{text-align:center; background:var(--ink); color:#fff; padding:7px; font-family:var(--serif-cn); font-weight:900; font-size:13px;}
+  .arch-out b{color:var(--yellow);}
+
+  /* AI 分析弹窗（SLIDE 5 二级页）*/
+  .apanel{border:1px solid var(--line); border-left:4px solid var(--yellow); padding:13px 16px; margin-top:14px;}
+  .ap-h{font-family:var(--serif-cn); font-weight:900; font-size:15px; color:var(--ink); margin-bottom:11px; line-height:1.35;}
+  .heat{display:flex; flex-direction:column; gap:9px;}
+  .heat-row{display:grid; grid-template-columns:74px 96px 1fr; align-items:center; gap:11px;}
+  .hr-k{font-size:11px; font-weight:700; color:var(--ink);}
+  .hr-bar{background:#EEE; height:14px; position:relative;}
+  .hr-bar i{position:absolute; left:0; top:0; bottom:0; background:var(--ink);}
+  .hr-bar.lite i{background:var(--yellow);}
+  .hr-v{font-size:11.5px; color:var(--ink-soft);}
+  .ap-so{margin-top:11px; font-size:12.5px; line-height:1.55; background:var(--yellow-soft); padding:9px 12px; color:var(--ink-soft);}
+  .ap-so b{color:var(--ink);}
+  .ap-list{margin:2px 0 0; padding-left:18px;}
+  .ap-list li{font-size:12.5px; line-height:1.6; margin-bottom:8px; color:var(--ink-soft);}
+  .ap-list b{color:var(--ink);}
+
+  /* P4 灵魂句 · 下半部分大字轻体 */
+  .p4-foot{border-top:1.5px solid var(--ink); padding-top:2.4vh; text-align:center; display:flex; flex-direction:column; align-items:center; gap:1.5vh;}
+  .p4-thesis{font-family:var(--serif-cn); font-weight:400; font-size:clamp(19px,2.2vw,30px); line-height:1.55; color:var(--ink-mute); letter-spacing:0.01em; max-width:1000px;}
+  .p4-thesis em{font-style:normal; background:linear-gradient(transparent 62%, var(--yellow-mark) 62%); padding:0 2px; color:var(--ink-soft);}
+  .p4-allin{font-family:var(--serif-cn); font-weight:500; font-size:clamp(15px,1.5vw,19px); color:var(--ink-soft);}
+  .p4-allin b{font-weight:700; color:var(--ink); background:linear-gradient(transparent 60%, var(--yellow-mark) 60%); padding:0 3px;}
+
+  /* SLIDE 6 · ending 黑金双引擎 */
+  .slide.ending{background:#0A0A0A; color:#F0EDE6;}
+  .slide.ending .slide-head{padding-top:2.4vh;}
+  .slide.ending .eyebrow{color:rgba(255,255,255,0.5);}
+  .slide.ending .eyebrow::after{background:#FFE300;}
+  .slide.ending .h-display{color:#F0EDE6;}
+  .slide.ending .accent{background:none; color:#FFE300; padding:0;}
+  .slide.ending .e-sub{font-family:var(--serif-cn); font-weight:400; font-size:clamp(14px,1.5vw,18px); color:rgba(255,255,255,0.62); margin-top:1vh;}
+  .slide.ending .brand{color:#F0EDE6;}
+  .slide.ending .topic-pill{background:#FFE300; color:#0A0A0A;}
+  .slide.ending .bottom-bar{color:rgba(255,255,255,0.45);}
+  .slide.ending .chapter-label{color:rgba(255,255,255,0.7);}
+  .slide.ending .chapter-label::before{background:#FFE300;}
+  .slide.ending .progress-counter strong{color:#F0EDE6;}
+  /* 双引擎卡 · 照搬捷途版式 */
+  .company-layout{flex:1; display:grid; grid-template-columns:1fr 1fr; gap:2.5vw; align-items:stretch;}
+  .company-card{padding:1.5vh 1.7vw; display:flex; flex-direction:column; border:1px solid rgba(255,227,0,0.15); background:rgba(255,255,255,0.04); position:relative; overflow:hidden;}
+  .company-card::before{content:''; position:absolute; top:0; left:0; right:0; height:3px; background:#FFE300;}
+  .company-card.mm{border-color:rgba(167,139,250,0.2);}
+  .company-card.mm::before{background:#A78BFA;}
+  .cc-badge{font-family:var(--sans-en); font-size:10px; font-weight:700; letter-spacing:0.18em; margin-bottom:9px;}
+  .company-card.icc .cc-badge{color:#FFE300;}
+  .company-card.mm .cc-badge{color:#A78BFA;}
+  .cc-name{font-family:var(--serif-cn); font-weight:900; font-size:clamp(21px,2.2vw,30px); color:#F0EDE6; line-height:1.2; margin-bottom:5px;}
+  .cc-sub{font-size:12.5px; color:rgba(255,255,255,0.5); margin-bottom:1vh;}
+  .cc-evo{display:flex; flex-direction:column; gap:4px; margin-bottom:0.9vh;}
+  .cc-evo-item{display:flex; align-items:baseline; gap:10px; padding:4px 0 4px 10px; border-left:3px solid rgba(255,227,0,0.15);}
+  .cc-evo-item:last-child{border-left-color:#FFE300;}
+  .cc-evo-year{font-family:var(--sans-en); font-size:10px; color:rgba(255,227,0,0.5); min-width:62px; flex-shrink:0; letter-spacing:0.04em;}
+  .cc-evo-item:last-child .cc-evo-year{color:#FFE300;}
+  .cc-evo-era{font-weight:700; font-size:12px; color:#F0EDE6; white-space:nowrap;}
+  .cc-evo-item:last-child .cc-evo-era{color:#FFE300;}
+  .cc-evo-detail{font-size:10px; color:rgba(255,255,255,0.45); margin-left:auto; white-space:nowrap;}
+  .cc-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:1vh;}
+  .cc-stat-num{font-family:var(--display-en); font-size:clamp(19px,2vw,27px); font-weight:900; color:#FFE300; line-height:1;}
+  .company-card.mm .cc-stat-num{color:#A78BFA;}
+  .cc-stat-label{font-size:10px; color:rgba(255,255,255,0.45); margin-top:4px;}
+  .cc-list{font-size:12.5px; line-height:1.7; color:rgba(255,255,255,0.7); flex:1;}
+  .cc-list strong{color:#F0EDE6; font-weight:600;}
+  .cc-clients{margin-top:1.3vh; padding-top:1.2vh; border-top:1px solid rgba(255,255,255,0.08); font-size:11px; color:rgba(255,255,255,0.45); line-height:1.6;}
+  .cc-clients strong{color:rgba(255,255,255,0.62);}
+  .company-card.mm .cc-clients strong{color:#A78BFA;}
+  .cc-team-banner{margin-top:auto; padding:11px 15px; position:relative; overflow:hidden; border:1px solid rgba(255,227,0,0.15); min-height:84px;}
+  .cc-team-banner::before{content:''; position:absolute; inset:0; background:url('team-dna.jpg') center 18%/cover no-repeat; opacity:0.55;}
+  .cc-team-banner::after{content:''; position:absolute; inset:0; background:linear-gradient(to top, rgba(10,10,10,0.9) 0%, rgba(10,10,10,0.4) 50%, rgba(10,10,10,0.7) 100%);}
+  .cc-team-banner>*{position:relative; z-index:1;}
+  .cc-team-label{font-family:var(--sans-en); font-size:8px; letter-spacing:0.2em; color:rgba(255,227,0,0.7); margin-bottom:8px;}
+  .cc-team-tags{display:flex; flex-wrap:wrap; gap:6px;}
+  .cc-bg-tag{padding:3px 10px; font-size:10px; font-weight:600; color:#F0EDE6; border:1px solid rgba(255,227,0,0.35); background:rgba(255,227,0,0.12);}
+  .cc-team-desc{margin-top:8px; font-size:10px; color:rgba(255,255,255,0.55); line-height:1.5;}
+  .cc-product-preview{margin-top:auto; position:relative; overflow:hidden; border:1px solid rgba(167,139,250,0.25); text-align:center; background:#000;}
+  .cc-product-preview img{max-width:100%; max-height:18vh; width:auto; display:inline-block; vertical-align:middle;}
+  .cc-product-label{position:absolute; top:6px; left:8px; z-index:1; font-family:var(--sans-en); font-size:8px; font-weight:700; letter-spacing:0.18em; color:#A78BFA; background:rgba(0,0,0,0.7); padding:2px 7px;}
+  .company-bridge{margin-top:1.1vh; padding:10px 24px; background:rgba(255,227,0,0.08); border:1px solid rgba(255,227,0,0.2); text-align:center; font-family:var(--serif-cn); font-size:clamp(15px,1.6vw,21px); color:rgba(255,255,255,0.78);}
+  .company-bridge strong{color:#FFE300; font-weight:900;}
+
+  @media (max-width:820px){
+    .cells,.close-grid,.hemis,.gold-stats,.wf-row,.wf-bottom,.demo-ba{grid-template-columns:1fr;}
+    .hemis .hemi{border:1.5px solid var(--ink);}
+    .ai-seam{flex-direction:row; gap:10px; padding:8px;}
+    .cap-row,.loop-blocks{grid-template-columns:1fr;} .cflow{display:none;} .flywheel{display:none;}
+    .slide{overflow-y:auto;}
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- ════ SLIDE 1 · KOE 生态位 ════ -->
+  <section class="slide">
+    <div class="top-nav">
+      <div class="brand">ICC · 红跑跑</div>
+      <div class="topic-pill">营销博弈 × 莲花跑车</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="eyebrow">从这一小摊 KOE 说起 · 它在 KOX 矩阵的生态位</div>
+      <h1 class="h-display">KOE 不是又一个号——<br>它占着一个<span class="accent">独特生态位</span>。</h1>
+    </div>
+
+    <div class="board">
+      <div class="chart-wrap">
+        <svg viewBox="0 0 1100 472" xmlns="http://www.w3.org/2000/svg" font-family="'Noto Sans SC','PingFang SC',sans-serif">
+          <!-- 甜区底色 (右上象限) -->
+          <rect x="555" y="22" width="495" height="213" fill="#FFF7CC"/>
+          <text x="1040" y="46" text-anchor="end" font-size="14.5" font-weight="700" fill="#9A7B00">★ 甜区 · 可控 × 活人</text>
+          <!-- 十字轴 -->
+          <line x1="58" y1="235" x2="1052" y2="235" stroke="#0D0D0D" stroke-width="2"/>
+          <polygon points="1058,235 1043,228 1043,242" fill="#0D0D0D"/>
+          <line x1="555" y1="460" x2="555" y2="18" stroke="#0D0D0D" stroke-width="2"/>
+          <polygon points="555,13 548,28 562,28" fill="#0D0D0D"/>
+          <!-- 轴标签 -->
+          <text x="1046" y="258" text-anchor="end" font-size="15" font-weight="700" fill="#0D0D0D">可控 高 →</text>
+          <text x="62" y="258" font-size="13" fill="#5C5C5C">← 可控 低</text>
+          <text x="570" y="33" font-size="15" font-weight="700" fill="#0D0D0D">↑ 活人感 高</text>
+          <text x="570" y="453" font-size="13" fill="#5C5C5C">活人感 低</text>
+          <!-- 素人/UGC : 上左 -->
+          <circle cx="250" cy="112" r="9" fill="#0D0D0D"/>
+          <text x="250" y="96" text-anchor="middle" font-size="17" font-weight="700" fill="#0D0D0D">素人 / UGC</text>
+          <text x="250" y="140" text-anchor="middle" font-size="12.5" fill="#5C5C5C">▸ KOE 更可控 · 可高频</text>
+          <!-- 博主/KOL : 上中偏左 -->
+          <circle cx="468" cy="172" r="9" fill="#0D0D0D"/>
+          <text x="468" y="156" text-anchor="middle" font-size="17" font-weight="700" fill="#0D0D0D">博主 / KOL</text>
+          <text x="468" y="200" text-anchor="middle" font-size="12.5" fill="#5C5C5C">▸ KOE 性价比优 (CPM/CPV)</text>
+          <!-- 官号/蓝V : 下右 -->
+          <circle cx="835" cy="345" r="9" fill="#0D0D0D"/>
+          <text x="835" y="329" text-anchor="middle" font-size="17" font-weight="700" fill="#0D0D0D">官号 / 蓝V</text>
+          <text x="835" y="373" text-anchor="middle" font-size="12.5" fill="#5C5C5C">▸ KOE 更活人 · 可成规模</text>
+          <!-- KOE : 上右 甜区 -->
+          <circle cx="848" cy="108" r="16" fill="#FFE300" stroke="#0D0D0D" stroke-width="2.5"/>
+          <text x="848" y="84" text-anchor="middle" font-size="20" font-weight="900" fill="#0D0D0D">KOE 矩阵号</text>
+          <text x="848" y="146" text-anchor="middle" font-size="12.5" font-weight="700" fill="#9A7B00">可控 · 活人 · 高频 · 高性价比</text>
+        </svg>
+      </div>
+
+      <div class="synth-bar">
+        <div class="sb-label">↑ 放大一层 · 这就是整个 KOX 的本质</div>
+        <div class="sb-text">让最接近<em>场景真相</em>的人，说最该被<em>信任</em>的话。</div>
+      </div>
+    </div>
+
+    <div class="foot-bar">
+      <div class="foot-quote">看懂这<b>一个号</b>的生态位，<br>才看得懂它所在的整盘棋。</div>
+      <div class="foot-side">↓ 营销即博弈 ——<br>外部 × 内部夹击出的一张考卷。</div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="chapter-label">KOE 在 KOX 矩阵的生态位</div>
+      <div class="progress-counter"><strong>01</strong> / 06</div>
+    </div>
+  </section>
+
+  <!-- ════ SLIDE 2 · 莲花定制博弈界面 ════ -->
+  <section class="slide">
+    <div class="top-nav">
+      <div class="brand">ICC · 红跑跑</div>
+      <div class="topic-pill">营销博弈 × 莲花跑车</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="eyebrow">For Lotus · AI 时代营销博弈界面</div>
+      <h1 class="h-display">外部正在<span class="accent">变天</span>，<br>内部需要<span class="accent">迭代</span>。</h1>
+    </div>
+
+    <div class="board">
+
+      <!-- PART 1 · EXTERNAL -->
+      <div class="part-tag"><span class="ar">↓</span> EXTERNAL &nbsp;<span class="cn">PART 1 · 已经发生的变化</span></div>
+      <div class="cells">
+        <div class="cell">
+          <span class="ai-tag">AI</span>
+          <div class="c-letter">EXTERNAL A</div>
+          <div class="c-name">宏观 / 需求</div>
+          <div class="c-verb">decides 市场天花板</div>
+          <div class="c-desc">渗透率破 50%，性能新能源细分崛起。AI 让用户秒比参数——决策从「比参数」转向「比认同」。</div>
+          <div class="c-lotus">对莲花：意义 &gt; 参数，正是主场。</div>
+        </div>
+        <div class="cell">
+          <span class="ai-tag">AI</span>
+          <div class="c-letter">EXTERNAL B</div>
+          <div class="c-name">平台 / 生态</div>
+          <div class="c-verb">rewrites 流量规则</div>
+          <div class="c-desc">平台进入长效经营：算法奖励「持续供给」，一次性 Campaign 失效。</div>
+          <div class="c-lotus">对莲花：发布会打法不够，要 Always-On。</div>
+        </div>
+        <div class="cell">
+          <span class="ai-tag">AI</span>
+          <div class="c-letter">EXTERNAL C</div>
+          <div class="c-name">竞争 / 格局</div>
+          <div class="c-verb">shapes 必入的战场</div>
+          <div class="c-desc">小米、问界、领克、仰望都在抢解释权；AI 让对手内容产能暴涨。</div>
+          <div class="c-lotus">对莲花：必须抢下「性能 / 赛道」解释权。</div>
+        </div>
+      </div>
+
+      <!-- BATTLE -->
+      <div class="battle">
+        <div class="b-label">Battle Interface · 营销博弈的考卷</div>
+        <div class="b-title">莲花的 AI 时代营销考卷</div>
+        <div class="b-sub">外部同时施压，内部决定接不接得住——<b>外部决定题目，内部决定分数。</b></div>
+      </div>
+
+      <!-- PART 2 · INTERNAL -->
+      <div class="part-tag"><span class="ar">↑</span> INTERNAL &nbsp;<span class="cn">PART 2 · 倒逼莲花要建立的能力与体系</span></div>
+      <div class="cells">
+        <div class="cell cap">
+          <div class="c-letter">INTERNAL D</div>
+          <div class="c-name">产品 / 品牌</div>
+          <div class="c-verb">provides 弹药库</div>
+          <div class="c-desc">产品矩阵 + 70 年赛道叙事 + 黑金资产，沉淀成<b>可被 AI 复用的「叙事弹药库」</b>——任何切面，都是同一个莲花。</div>
+        </div>
+        <div class="cell cap">
+          <div class="c-letter">INTERNAL E</div>
+          <div class="c-name">组织 / 流程</div>
+          <div class="c-verb">decides 能否落地</div>
+          <div class="c-desc">官号 / KOE / KOL / KOC / KOS 不再各说各话——<b>拧成一盘棋</b>，一次声量从定调、讲透到裂变接力跑通。</div>
+        </div>
+        <div class="cell cap">
+          <div class="c-letter">INTERNAL F</div>
+          <div class="c-name">数据 / 运营</div>
+          <div class="c-verb">defines 能否复盘放大</div>
+          <div class="c-desc">建「营销驾驶舱」：看板 + 爆款配方沉淀 + 转化口径打通，把「传播效率」变成<b>「生意结果」</b>。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot-bar">
+      <div class="foot-quote">外部的变化已经发生；<b>内部的能力，决定你能不能接住。</b></div>
+      <div class="foot-side">AI 正在重写 KOX 的人力成本和规模边界——过去靠人海堆出来的体系，<b>莲花第一次有机会被规模化复制。</b></div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="chapter-label">莲花 · AI 时代营销博弈界面</div>
+      <div class="progress-counter"><strong>02</strong> / 06</div>
+    </div>
+  </section>
+
+  <!-- ════ SLIDE 3 · AI 蓝图 · 意义/效率双半球 ════ -->
+  <section class="slide">
+    <div class="top-nav">
+      <div class="brand">ICC · 红跑跑</div>
+      <div class="topic-pill">营销博弈 × 莲花跑车</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="eyebrow">宏观蓝图 · AI 时代，市场会变成什么样</div>
+      <h1 class="h-display">AI 同时改写两件事：<br><span class="accent">意义</span>，与<span class="accent">效率</span>。</h1>
+    </div>
+
+    <div class="board">
+      <div class="hemis">
+        <div class="hemi eff">
+          <div class="he-tag">The Cheap Half · 正在被打到地板</div>
+          <div class="he-h">效率半球</div>
+          <div class="he-sub">生产 · 分发 · 复用 · 归因</div>
+          <div class="he-d">AI 把内容生产、分发、复用、数据归因的边际成本<b>打到地板</b>。效率不再是壁垒——因为人人都将拥有。</div>
+          <div class="he-flag">→ 门槛在消失</div>
+          <button class="gold-trigger" onclick="openGold()">▸ 延伸理论：KOX 是一座金矿 ↗</button>
+        </div>
+        <div class="ai-seam">
+          <div class="as-big">AI</div>
+          <div class="as-t">同时<br>改写<br>两者</div>
+        </div>
+        <div class="hemi meaning">
+          <div class="he-tag">The Scarce Half · 越来越稀缺</div>
+          <div class="he-h">意义半球</div>
+          <div class="he-sub">让人觉得「这跟我有关」</div>
+          <div class="he-d">当 AI 让参数、评价、触达都不再稀缺，唯一还稀缺的，是「气味相投、跟我有关」的<b>意义</b>。而意义，算法目前还不能直接生成。</div>
+          <div class="he-flag">→ 壁垒在升高</div>
+        </div>
+      </div>
+
+      <div class="synth-bar">
+        <div class="sb-label">悖论 · 也是机会</div>
+        <div class="sb-text">意义要靠<em>规模化</em>的内容才显像，而规模化要靠<em>效率</em>——<br>赢家，是把<em>两个半球缝起来</em>的人。</div>
+      </div>
+    </div>
+
+    <div class="foot-bar">
+      <div class="foot-quote">效率人人都有之后，<br><b>胜负手回到了「意义」。</b></div>
+      <div class="foot-side">接 P1「外部正在变天」——渗透率破 50%、平台转长效经营、AIGC 井喷、对手抢解释权，<br>所有变化最后都收敛成这两个变量。</div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="chapter-label">意义 / 效率 · 双半球</div>
+      <div class="progress-counter"><strong>03</strong> / 06</div>
+    </div>
+  </section>
+
+  <!-- ════ SLIDE 4 · 核心能力 = 缝合两半球 → 红跑跑 ════ -->
+  <section class="slide">
+    <div class="top-nav">
+      <div class="brand">ICC · 红跑跑</div>
+      <div class="topic-pill">营销博弈 × 莲花跑车</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="eyebrow">落脚点 · 要建的核心能力</div>
+      <h1 class="h-display">核心能力，是把两个半球<span class="accent">缝起来</span>。</h1>
+      <p class="h-sub">三块能力，把<span class="hl">意义</span>（人 + 策略）和<span class="hl">效率</span>（AI + 数据）缝成一条完整产线。</p>
+    </div>
+
+    <div class="cap-map">
+      <div class="loop-blocks">
+        <!-- 能力① 策略理解 -->
+        <div class="cblock c-mean">
+          <div class="cb-top"><span class="cb-no">能力 ①</span><span class="cb-hemi mean">意义</span></div>
+          <div class="cb-h">策略理解</div>
+          <div class="cb-d">读懂这盘棋——外部环境 × 内部能力 + 品牌本身，先想清楚<b>「该说什么、对谁说」</b>，而不是上来就生产。</div>
+        </div>
+        <div class="cflow">›</div>
+        <!-- 能力② 规模化生产（含人类创意口子）-->
+        <div class="cblock c-prod">
+          <div class="cb-top"><span class="cb-no">能力 ②</span><span class="cb-hemi eff">效率</span></div>
+          <div class="cb-h">规模化生产</div>
+          <div class="human-port">＋ 人类创意，从这里注入 <span>—— AI 给不了的灵光 / 审美 / 共情，由人补上</span></div>
+          <div class="pipe">
+            <span class="pp">品牌 Brief</span><i>›</i><span class="pp">AI 创作 · 多版本</span><i>›</i><span class="pp">人机审核</span><i>›</i><span class="pp">多平台分发</span>
+          </div>
+          <div class="found">底座 · 让 AI 真懂莲花：<b>品牌知识库</b> · <b>项目素材库</b> · <b>角色记忆</b></div>
+        </div>
+      </div>
+
+      <!-- 数据飞轮：连通 ① 与 ② 的回流管道 -->
+      <div class="flywheel">
+        <div class="fw-line"></div>
+        <div class="fw-riser l"></div>
+        <div class="fw-head"></div>
+        <div class="fw-riser r"></div>
+        <div class="fw-chip">↺ 数据飞轮 · 效果从 ② 回流到 ①，越跑越准</div>
+      </div>
+    </div>
+
+    <div class="p4-foot">
+      <div class="p4-thesis">AI 把「术 · 器 · 法」的成本打下来，让「道」第一次被规模化兑现——<br>而莲花，正是少有的、天生赢在<em>意义</em>的品牌。</div>
+      <div class="p4-allin">所以，红跑跑 <b>All in 莲花</b>。</div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="chapter-label">核心能力 · 缝合意义与效率</div>
+      <div class="progress-counter"><strong>04</strong> / 06</div>
+    </div>
+  </section>
+
+  <!-- ════ SLIDE 5 · KOE × AI 工作流升级 ════ -->
+  <section class="slide">
+    <div class="top-nav">
+      <div class="brand">ICC · 红跑跑</div>
+      <div class="topic-pill">营销博弈 × 莲花跑车</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="eyebrow">落地 · KOE × AI 工作流升级（基于 73 篇真脚本 + 数据表）</div>
+      <h1 class="h-display">把这套能力，<span class="accent">用回 KOE 自己</span>。</h1>
+      <p class="h-sub">157 篇全靠人肉一篇篇手搓——AI 不取代这套打法，而是把「已验证有效、却在反复手搓」的环节自动化：<span class="hl">同样的人手，产能翻几倍，保真更稳</span>。
+      <button class="gold-trigger" style="margin-left:8px;" onclick="openAnalysis()">▸ AI 实测：73 篇脚本的规律地图，点开看 ↗</button></p>
+    </div>
+
+    <div class="board" style="gap:0;">
+      <div class="wf-row">
+        <div class="wf-col">
+          <div class="wf-stage">① 选题</div>
+          <div class="wf-today"><span class="lab">今天</span>人工刷热点贴链接，同一批质疑点反复重发现</div>
+          <div class="wf-ai"><span class="lab">AI 升级后</span>自动聚成「选题池」+ 爆款公式打分排期</div>
+        </div>
+        <div class="wf-col">
+          <div class="wf-stage">② 脚本</div>
+          <div class="wf-today"><span class="lab">今天</span>15 篇同构脚本却一篇篇逐字写</div>
+          <div class="wf-ai"><span class="lab">AI 升级后</span>生成器一键出初稿，从「写」变「改」</div>
+        </div>
+        <div class="wf-col">
+          <div class="wf-stage">③ 审核·保真</div>
+          <div class="wf-today"><span class="lab">今天</span>多轮人工删改，参数东拼西凑、口径打架</div>
+          <div class="wf-ai"><span class="lab">AI 升级后</span>四关自动审 + 参数库标红，压成一轮终审</div>
+        </div>
+        <div class="wf-col">
+          <div class="wf-stage">④ 拍摄</div>
+          <div class="wf-today"><span class="lab">今天</span>通告 / 分镜 / 工程师档期全人工排</div>
+          <div class="wf-ai"><span class="lab">AI 升级后</span>自动出通告 +「待工程师确认」清单</div>
+        </div>
+        <div class="wf-col">
+          <div class="wf-stage">⑤ 分发</div>
+          <div class="wf-today"><span class="lab">今天</span>一条好内容主要靠 3 个自营号发</div>
+          <div class="wf-ai"><span class="lab">AI 升级后</span>一条自动裂变多平台、多版本、多人设</div>
+        </div>
+        <div class="wf-col">
+          <div class="wf-stage">⑥ 复盘</div>
+          <div class="wf-today"><span class="lab">今天</span>人工拉数、人工写简报、人工判断</div>
+          <div class="wf-ai"><span class="lab">AI 升级后</span>自动归因 → 回写选题，形成闭环</div>
+        </div>
+      </div>
+
+      <div class="wf-bottom">
+        <!-- 为什么：底层架构 -->
+        <div class="arch">
+          <div class="arch-t"><span class="arch-why">为什么做得到</span>内容被拆成稳定的「结构件」，AI 只做按需重组</div>
+          <div class="arch-layers">
+            <div class="al"><span class="al-k">人设</span>赛事 F1 情怀 · 工程硬核 · 人设小白</div>
+            <div class="al"><span class="al-k">爆款结构</span>钩子→展开→金句 · 四段式 · 道具实验 · 答网友问</div>
+            <div class="al"><span class="al-k">情绪点</span>反差 · 共情 · 情怀 · 种草</div>
+            <div class="al"><span class="al-k">事实底座</span>产品参数 · 赛道史料 · 品牌资产</div>
+          </div>
+          <div class="arch-down">↓ AI 按这套稳定框架重组</div>
+          <div class="arch-out">千人千面，<b>始终是同一个莲花</b></div>
+        </div>
+        <!-- 怎么样：demo -->
+        <div class="demo-box">
+          <span class="db-tag">DEMO · 怎么样</span>
+          <div class="db-t">一篇《Type79 地效之王》F1 故事，一拆为多 · 千人千面</div>
+          <div class="demo-ba">
+            <div class="cell-x"><span class="lab">今天</span>编导从官网 / Getty 逐条找史料，套四段式、人工核数字——约半天到一天 / 篇；下一台车从零再来。</div>
+            <div class="cell-x after"><span class="lab">AI 升级后</span>输入「Type79 + 地效 + 战绩」→ 知识库调史料标来源 → 一键初稿 → 自动派生<b>三号变体</b>（赛事 F1 情怀 · 工程地效实验 · 人设小白反差）→ 只校验润色，半天 → 1–2 小时。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="foot-bar">
+      <div class="foot-quote">同样的人，<b>做几倍的活。</b></div>
+      <div class="foot-side">保真：数字均来自《发布视频数据表》与复盘（已发生事实）；提效幅度为<b>【估算】</b>，落地前需小范围试点用真实工时验证，不作已实现成果承诺。</div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="chapter-label">KOE × AI 工作流升级 · 落地</div>
+      <div class="progress-counter"><strong>05</strong> / 06</div>
+    </div>
+  </section>
+
+  <!-- ════ SLIDE 6 · ENDING · 重新介绍红跑跑 ════ -->
+  <section class="slide ending">
+    <div class="top-nav">
+      <div class="brand">ICC · 红跑跑</div>
+      <div class="topic-pill">营销博弈 × 莲花跑车</div>
+    </div>
+
+    <div class="slide-head">
+      <div class="eyebrow">Ending · 再认识红跑跑</div>
+      <h1 class="h-display">请允许我们，<span class="accent">重新介绍一下红跑跑</span>。</h1>
+      <div class="e-sub">一家同时拥有「客户理解」和「AI 产线」的公司——本身就是「意义 × 效率」的缝合体。</div>
+    </div>
+
+    <div class="board" style="gap:0;">
+      <div class="company-layout">
+        <!-- 执行引擎 ICC -->
+        <div class="company-card icc">
+          <div class="cc-badge">EXECUTION ENGINE · 执行引擎</div>
+          <div class="cc-name">ICC · 红跑跑</div>
+          <div class="cc-sub">从「流量」到「资产」· 重构汽车营销底色</div>
+          <div class="cc-evo">
+            <div class="cc-evo-item"><span class="cc-evo-year">2022–2023</span><span class="cc-evo-era">流量崛起时代</span><span class="cc-evo-detail">达人孵化 · 官号精细化</span></div>
+            <div class="cc-evo-item"><span class="cc-evo-year">2023–2024</span><span class="cc-evo-era">达人投放时代</span><span class="cc-evo-detail">平台头部服务商</span></div>
+            <div class="cc-evo-item"><span class="cc-evo-year">2024–2025</span><span class="cc-evo-era">去中心化传播时代</span><span class="cc-evo-detail">矩阵精细化运营</span></div>
+            <div class="cc-evo-item"><span class="cc-evo-year">2025–2026</span><span class="cc-evo-era">AI 赋能流量经营时代</span><span class="cc-evo-detail">品牌营销资产运营</span></div>
+          </div>
+          <div class="cc-list"><strong>KOL / KOC / KOS / KOE</strong> 全链路代运营<br>品牌 Campaign + Always-On 双轨交付<br>从策略 → 执行 → 数据复盘一体化</div>
+          <div class="cc-team-banner">
+            <div class="cc-team-label">CORE TEAM DNA</div>
+            <div class="cc-team-tags"><span class="cc-bg-tag">连续创业者</span><span class="cc-bg-tag">媒体平台</span><span class="cc-bg-tag">汽车品牌甲方</span><span class="cc-bg-tag">代理公司</span><span class="cc-bg-tag">MCN 内容机构</span></div>
+            <div class="cc-team-desc">五种基因交叉，既懂甲方要什么，也知道内容怎么跑起来。</div>
+          </div>
+          <div class="cc-clients"><strong>服务品牌</strong>　奥迪 · 莲花 · 智己 · 荣威 · MG · 凯迪拉克 · 大众 · 福特 · 蔚来 · 红旗 · 捷途</div>
+        </div>
+
+        <!-- AI 产品引擎 Musemine -->
+        <div class="company-card mm">
+          <div class="cc-badge">AI PRODUCT ENGINE · 产品引擎</div>
+          <div class="cc-name">Musemine</div>
+          <div class="cc-sub">自研 AI 营销生产力工具（AIKOX 核心模块：矩阵内容生产）</div>
+          <div class="cc-stats">
+            <div><div class="cc-stat-num">MM 1.1</div><div class="cc-stat-label">当前版本</div></div>
+            <div><div class="cc-stat-num">Multi</div><div class="cc-stat-label">Agent 框架</div></div>
+            <div><div class="cc-stat-num">3 层</div><div class="cc-stat-label">知识注入</div></div>
+          </div>
+          <div class="cc-list"><strong>四件套</strong>　数字人 / AI 视频 / AI 美图 / 自动化<br><strong>三层注入</strong>　品牌知识 / 角色人设 / 项目上下文<br>闭源 + 开源混合架构 · <strong>9 步全链路</strong>最快 2 小时成片</div>
+          <div class="cc-product-preview">
+            <div class="cc-product-label">PRODUCT PREVIEW</div>
+            <img src="musemine-preview.jpg" alt="Musemine 产品登录页">
+          </div>
+          <div class="cc-clients"><strong>已验证 · 莲花 KOE</strong>　自营 1700万+ 播放 · 近 5 万粉 · CPV 0.06（KPI 4 折）；长尾分发再加 9773万+ 曝光。</div>
+        </div>
+      </div>
+
+      <div class="company-bridge">别人是 agency 外包 AI，或者 AI 公司不懂客户——而红跑跑，<strong>两个都是自己的</strong>。</div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="chapter-label">再认识红跑跑 · 客户理解 × AI 产线</div>
+      <div class="progress-counter"><strong>06</strong> / 06</div>
+    </div>
+  </section>
+
+</div>
+
+<!-- 二级页面 · KOX 是一座金矿 -->
+<div class="modal" id="goldModal" onclick="if(event.target===this)closeGold()">
+  <div class="modal-card">
+    <button class="modal-x" onclick="closeGold()" aria-label="关闭">✕</button>
+    <div class="m-eyebrow">延伸理论 · The Hidden Goldmine</div>
+    <h2>莲花坐在一座<span class="accent">金矿</span>上——<br>已经在挖，但人手不够。</h2>
+    <p>经销商门店、一线销售、真实车主、矩阵账号……所有人都知道，这是一座巨大的内容资产金矿。很多品牌也在挖，但<b>纯人工经营</b>这套 KOX 体系，工作量和管理难度极大——这正是「效率半球」被卡住的地方。</p>
+    <div class="gold-stats">
+      <div><strong>经销商门店</strong>等待统一的内容赋能</div>
+      <div><strong>一线销售</strong>每天不知道发什么</div>
+      <div><strong>真实车主</strong>的热情待被点燃释放</div>
+    </div>
+    <p class="gold-close-line">人负责点燃热情，<em>AI 负责降低门槛</em>。金矿不缺意愿，缺的是老手的工具。</p>
+    <a class="gold-link" href="https://icc-kox.onrender.com/" target="_blank" rel="noopener noreferrer">Open ICC KOX AI Service ↗</a>
+  </div>
+</div>
+
+<!-- 二级页面 · AI 脚本规律分析 -->
+<div class="modal" id="analysisModal" onclick="if(event.target===this)closeAnalysis()">
+  <div class="modal-card">
+    <button class="modal-x" onclick="closeAnalysis()" aria-label="关闭">✕</button>
+    <div class="m-eyebrow">AI 实测 · 73 篇脚本 = 266 句金句 + 88 个类比</div>
+    <h2>AI 找规律更快，<span class="accent">还能把规律攒成资产</span>。</h2>
+    <p>人肉要逐篇读一周才能拼出的规律，AI 几秒就盘清，并沉淀成可长期复用的结构件——这正是「内容资产」能被规模化经营的底气。下面是两块最有用的发现：</p>
+
+    <div class="apanel">
+      <div class="ap-h">① 卖点覆盖地图：四大性能已打透，「决策点」是下一片蓝海</div>
+      <div class="heat">
+        <div class="heat-row"><span class="hr-k">已深度打透</span><span class="hr-bar"><i style="width:92%"></i></span><span class="hr-v">轻量化 · 952匹 · 空气动力学 · 900V（合计 63+ 次）</span></div>
+        <div class="heat-row"><span class="hr-k">蓝海机会</span><span class="hr-bar lite"><i style="width:13%"></i></span><span class="hr-v">售后保障 · 购车权益 · 智能化体验（各 1–3 次）</span></div>
+      </div>
+      <div class="ap-so">→ 性能心智已经牢牢建立；把用户最关心的「买得放心」决策点补上，就能从<b>种草</b>顺势走到<b>促单</b>。</div>
+    </div>
+
+    <div class="apanel">
+      <div class="ap-h">② 结构洞察：爆款打法，已经可以被「结构化复用」</div>
+      <ul class="ap-list">
+        <li><b>金句已沉淀成公式库</b>：266 句金句收敛成约 10 个可复用公式（如「A is nothing without B」「真正的 X 不是 Y，而是 Z」）——这正是 AI 能规模化复制的现成资产。</li>
+        <li><b>信任底盘已经建成</b>：矩阵已高频、专业地化解了「换壳 / 减配」等顾虑，建立起强信任防御——下一步可以把更多火力，从防守转向<b>进攻种草</b>。</li>
+        <li><b>差异化新线已经跑出</b>：人设号把 For Me 升华成生活态度（「活成 For Me 的样子」），跳出参数战、做情感心智——是最值得加码的增长点。</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="nav">
+  <button id="prev" aria-label="上一页">‹</button>
+  <span id="pageind">1 / 6</span>
+  <button id="next" aria-label="下一页">›</button>
+</div>
+
+<script>
+  var goldModal=document.getElementById('goldModal');
+  var analysisModal=document.getElementById('analysisModal');
+  function openGold(){goldModal.classList.add('show');}
+  function closeGold(){goldModal.classList.remove('show');}
+  function openAnalysis(){analysisModal.classList.add('show');}
+  function closeAnalysis(){analysisModal.classList.remove('show');}
+  (function(){
+    var deck=document.getElementById('deck');
+    var slides=deck.querySelectorAll('.slide');
+    var n=slides.length, i=0;
+    var ind=document.getElementById('pageind');
+    var prev=document.getElementById('prev'), next=document.getElementById('next');
+    function go(k){
+      i=Math.max(0,Math.min(n-1,k));
+      for(var j=0;j<n;j++){slides[j].classList.toggle('active',j===i);}
+      ind.textContent=(i+1)+' / '+n;
+      prev.disabled=(i===0); next.disabled=(i===n-1);
+    }
+    prev.addEventListener('click',function(){go(i-1);});
+    next.addEventListener('click',function(){go(i+1);});
+    window.addEventListener('keydown',function(e){
+      if(goldModal.classList.contains('show')||analysisModal.classList.contains('show')){ if(e.key==='Escape'){closeGold();closeAnalysis();} return; }
+      if(['ArrowRight','ArrowDown','PageDown',' '].indexOf(e.key)>-1){e.preventDefault();go(i+1);}
+      else if(['ArrowLeft','ArrowUp','PageUp'].indexOf(e.key)>-1){e.preventDefault();go(i-1);}
+      else if(e.key==='Home'){go(0);} else if(e.key==='End'){go(n-1);}
+    });
+    go(0);
+  })();
+</script>
+</body>
+</html>
