@@ -30,13 +30,13 @@
     -webkit-font-smoothing:antialiased;
     overflow:hidden;
   }
-  *:focus{outline:none;}
-  .deck button:focus-visible{outline:2px solid var(--yellow); outline-offset:2px;}
+  *{outline:none !important; -webkit-tap-highlight-color:transparent;}
+  .deck button:focus-visible{outline:2px solid var(--yellow) !important; outline-offset:2px;}
   ::selection{background:rgba(255,227,0,0.45); color:#0D0D0D;}
-  html{-webkit-tap-highlight-color:transparent;}
-  .deck{position:relative; height:100vh; width:100vw; overflow:hidden; z-index:2;}
+  ::-webkit-scrollbar{display:none;}
+  .deck{position:relative; height:100vh; width:100%; overflow:hidden; z-index:2;}
   .slide{
-    position:absolute; top:0; left:0; width:100vw; height:100vh;
+    position:absolute; top:0; left:0; width:100%; height:100vh;
     padding:3.4vh 5.5vw 5vh;
     display:grid; grid-template-rows:auto 1fr auto; row-gap:1.6vh;
     overflow:hidden;
